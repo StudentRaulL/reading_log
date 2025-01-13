@@ -1,9 +1,9 @@
 package com.proiect_cmo.reading_log;
 
 import androidx.appcompat.app.AppCompatActivity;
-
 import android.app.AlertDialog;
 import android.app.Dialog;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -17,9 +17,7 @@ import android.widget.Spinner;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.GridLayoutManager;
-import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.firebase.firestore.DocumentReference;
@@ -29,9 +27,7 @@ import com.google.firebase.firestore.QuerySnapshot;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 public class BooksListActivity extends AppCompatActivity {
 
@@ -39,16 +35,19 @@ public class BooksListActivity extends AppCompatActivity {
     private BookAdapter bookAdapter;
     private List<Book> bookList;
 
-    // Crează un interface de callback
-    public interface DataLoadedCallback {
-        void onDataLoaded();
-    }
-
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_books_list);
+
+        // Get logged-in user ID from SharedPreferences
+        SharedPreferences sharedPreferences = getSharedPreferences("UserPrefs", MODE_PRIVATE);
+        String userId = sharedPreferences.getString("userId", null);
+
+        if (userId == null) {
+            Toast.makeText(this, "User not logged in", Toast.LENGTH_SHORT).show();
+            return; // If no user is logged in, don't proceed
+        }
 
         Spinner filterSortSpinner = findViewById(R.id.filterSortSpinner);
         ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(this,
@@ -59,11 +58,17 @@ public class BooksListActivity extends AppCompatActivity {
         bookList = new ArrayList<>();
 
         EditText genreFilterInput = findViewById(R.id.genreFilterInput);
-        EditText statusFilterInput = findViewById(R.id.statusFilterInput);
+
+        Spinner statusFilterSpinner = findViewById(R.id.statusFilterSpinner);
+        ArrayAdapter<CharSequence> statusAdapter = ArrayAdapter.createFromResource(this,
+                R.array.status_options, android.R.layout.simple_spinner_item);
+        statusAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        statusFilterSpinner.setAdapter(statusAdapter);
+
         Button applyFilterButton = findViewById(R.id.applyFilterButton);
 
         recyclerView = findViewById(R.id.recyclerViewBooks);
-        recyclerView.setLayoutManager(new GridLayoutManager(this, 2)); // 2 coloane
+        recyclerView.setLayoutManager(new GridLayoutManager(this, 2)); // 2 columns
 
         bookAdapter = new BookAdapter(bookList);
         recyclerView.setAdapter(bookAdapter);
@@ -81,43 +86,30 @@ public class BooksListActivity extends AppCompatActivity {
                 }
             }
 
-
-
             @Override
             public void onNothingSelected(AdapterView<?> parentView) {
-                // Nu se face nimic când nu este selectată nicio opțiune
+                // Do nothing if nothing is selected
             }
         });
 
         applyFilterButton.setOnClickListener(v -> {
             String genre = genreFilterInput.getText().toString().trim();
-            String status = statusFilterInput.getText().toString().trim();
+            String status = statusFilterSpinner.getSelectedItem().toString();
 
             if (!genre.isEmpty()) {
                 filterBooksByGenre(genre);
-            } else if (!status.isEmpty()) {
-                filterBooksByStatus(status);
+            } else if (!status.equals("All statuses")) {
+                filterBooksByStatus(status);  // Filter by selected status (Read/Unread)
             } else {
-                // Dacă nu se introduce nimic, afișăm toate cărțile
-                loadBooksFromFirestore(new DataLoadedCallback() {
-                    @Override
-                    public void onDataLoaded() {
-                        bookAdapter.notifyDataSetChanged(); // Notifică adapterul că datele s-au încărcat
-                    }
-                });
+                // If no filter is applied, load all books
+                loadBooksFromFirestore(userId, null, null);
             }
         });
 
-
-        loadBooksFromFirestore(new DataLoadedCallback() {
-            @Override
-            public void onDataLoaded() {
-                bookAdapter.notifyDataSetChanged(); // Notifică adapterul că datele s-au încărcat
-            }
-        });
+        loadBooksFromFirestore(userId, null, null);
 
         Button addBookButton = findViewById(R.id.addBookButton);
-        addBookButton.setOnClickListener(v -> showAddBookDialog());
+        addBookButton.setOnClickListener(v -> showAddBookDialog(userId));
     }
 
     private void sortBooksByTitle() {
@@ -137,7 +129,7 @@ public class BooksListActivity extends AppCompatActivity {
                 filteredList.add(book);
             }
         }
-        bookAdapter.updateList(filteredList); // Actualizează adapterul cu lista filtrată
+        bookAdapter.updateList(filteredList);
     }
 
     private void filterBooksByStatus(String status) {
@@ -147,12 +139,10 @@ public class BooksListActivity extends AppCompatActivity {
                 filteredList.add(book);
             }
         }
-        bookAdapter.updateList(filteredList); // Actualizează adapterul cu lista filtrată
+        bookAdapter.updateList(filteredList);
     }
 
-
-    private void showAddBookDialog() {
-        // Creează dialogul
+    private void showAddBookDialog(String userId) {
         Dialog dialog = new Dialog(this);
         dialog.setContentView(R.layout.dialog_add_book);
         Window window = dialog.getWindow();
@@ -161,28 +151,25 @@ public class BooksListActivity extends AppCompatActivity {
         }
         dialog.setCancelable(true);
 
-        // Referințe la elementele din dialog
         EditText titleInput = dialog.findViewById(R.id.editTextBookTitle);
         EditText authorInput = dialog.findViewById(R.id.editTextBookAuthor);
         EditText genreInput = dialog.findViewById(R.id.editTextBookGenre);
         Button saveButton = dialog.findViewById(R.id.saveBookButton);
 
-        // Setare logică pentru salvarea cărții
         saveButton.setOnClickListener(v -> {
             String title = titleInput.getText().toString().trim();
             String author = authorInput.getText().toString().trim();
             String genre = genreInput.getText().toString().trim();
 
             if (!title.isEmpty() && !author.isEmpty() && !genre.isEmpty()) {
-
                 Book newBook = new Book();
                 newBook.setName(title);
                 newBook.setAuthor(author);
                 newBook.setGenre(genre);
-                newBook.setStatus("Available");
+                newBook.setStatus("Unread");
 
                 FirebaseFirestore db = FirebaseFirestore.getInstance();
-                DocumentReference userRef = db.collection("users").document("JIZq0thaESEbRSSRKnBy");  // Înlocuiește cu ID-ul corect
+                DocumentReference userRef = db.collection("users").document(userId); // Use the logged-in user's ID
                 newBook.setUserId(userRef);
 
                 db.collection("books").add(newBook)
@@ -201,22 +188,22 @@ public class BooksListActivity extends AppCompatActivity {
             }
         });
 
-
         dialog.show();
     }
+
     private void showToast(String message) {
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
     }
 
-
-    private void loadBooksFromFirestore(final DataLoadedCallback callback) {
+    private void loadBooksFromFirestore(String userId, String genre, String status) {
         FirebaseFirestore db = FirebaseFirestore.getInstance();
 
         db.collection("books")
+                .whereEqualTo("userId", db.collection("users").document(userId)) // Filter by user ID
                 .get()
                 .addOnCompleteListener(task -> {
                     if (task.isSuccessful()) {
-                        bookList.clear(); // Golește lista înainte de a adăuga date noi
+                        bookList.clear();
                         QuerySnapshot documents = task.getResult();
                         if (documents != null) {
                             for (QueryDocumentSnapshot doc : documents) {
@@ -227,15 +214,11 @@ public class BooksListActivity extends AppCompatActivity {
                                     e.printStackTrace();
                                 }
                             }
-                            if (callback != null) {
-                                callback.onDataLoaded(); // Apelează callback-ul după încărcare
-                            }
+                            bookAdapter.notifyDataSetChanged();
                         }
                     } else {
-                        System.err.println("Firestore task failed: " + task.getException());
+                        Log.e("Firestore", "Error loading books: ", task.getException());
                     }
-                })
-                .addOnFailureListener(Throwable::printStackTrace);
+                });
     }
-
 }

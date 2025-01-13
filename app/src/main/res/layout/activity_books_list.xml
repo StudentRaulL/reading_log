@@ -63,18 +63,13 @@
         android:textSize="16sp"/>
 
     <!-- Câmp de filtrare - Status -->
-    <EditText
-        android:id="@+id/statusFilterInput"
+    <Spinner
+        android:id="@+id/statusFilterSpinner"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Enter status (e.g., Available, Read)"
-        android:inputType="text"
-        android:layout_marginTop="8dp"
-        android:padding="12dp"
-        android:background="@drawable/custom_edittext_background"
-        android:textColor="#333333"
-        android:textColorHint="#777777"
-        android:textSize="16sp"/>
+        android:layout_margin="16dp"
+        android:padding="10dp"
+        android:background="@drawable/custom_spinner_background"/>
 
     <!-- Buton pentru aplicarea filtrului -->
     <Button

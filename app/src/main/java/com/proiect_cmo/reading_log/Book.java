@@ -3,6 +3,7 @@ package com.proiect_cmo.reading_log;
 import com.google.firebase.firestore.DocumentReference;
 
 public class Book {
+    private String id;
     private String author;
     private String genre;
     private String name;
@@ -56,6 +57,14 @@ public class Book {
     public
     DocumentReference getUserId() {
         return userId;
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
     }
 
     public void setUserId(

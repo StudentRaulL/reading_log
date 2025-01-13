@@ -46,7 +46,6 @@ public class BookAdapter extends RecyclerView.Adapter<BookAdapter.BookViewHolder
         holder.authorTextView.setText("Author: " + book.getAuthor());
         holder.genreTextView.setText("Genre: " + book.getGenre());
         holder.statusTextView.setText("Status: " + book.getStatus());
-        holder.userIdTextView.setText("User ID: " + book.getUserId());
 
 
         holder.switchStatus.setChecked(book.getStatus().equals("Read"));
@@ -55,7 +54,15 @@ public class BookAdapter extends RecyclerView.Adapter<BookAdapter.BookViewHolder
             String newStatus = isChecked ? "Read" : "Unread";
             book.setStatus(newStatus);
 
-            notifyItemChanged(position);
+            FirebaseFirestore db = FirebaseFirestore.getInstance();
+            db.collection("books").document(book.getId())  // Assuming Book class has an `id` property
+                    .update("status", newStatus)
+                    .addOnSuccessListener(aVoid -> {
+                        notifyItemChanged(position);
+                    })
+                    .addOnFailureListener(e -> {
+                        holder.switchStatus.setChecked(!isChecked);
+                    });
         });
     }
 
@@ -71,7 +78,6 @@ public class BookAdapter extends RecyclerView.Adapter<BookAdapter.BookViewHolder
         public TextView authorTextView;
         public TextView genreTextView;
         public TextView statusTextView;
-        public TextView userIdTextView;
 
         Switch switchStatus;
 
@@ -82,7 +88,6 @@ public class BookAdapter extends RecyclerView.Adapter<BookAdapter.BookViewHolder
             authorTextView = itemView.findViewById(R.id.bookAuthor);
             genreTextView = itemView.findViewById(R.id.bookGenre);
             statusTextView = itemView.findViewById(R.id.bookStatus);
-            userIdTextView = itemView.findViewById(R.id.bookUserId);
             switchStatus = itemView.findViewById(R.id.switchStatus);
         }
     }

@@ -68,16 +68,6 @@
             android:textSize="16sp"
             android:textColor="@android:color/black" />
 
-        <!-- ID-ul utilizatorului -->
-        <TextView
-            android:id="@+id/bookUserId"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:text="User ID: 12345"
-            android:textSize="16sp"
-            android:textColor="@android:color/black" />
-
         <Switch
             android:id="@+id/switchStatus"
             android:layout_width="wrap_content"
