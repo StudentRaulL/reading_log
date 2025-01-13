@@ -1,3 +1,7 @@
 <resources>
     <string name="app_name">reading_log</string>
+    <string-array name="filter_sort_options">
+        <item>Sort by Title</item>
+        <item>Sort by Author</item>
+    </string-array>
 </resources>

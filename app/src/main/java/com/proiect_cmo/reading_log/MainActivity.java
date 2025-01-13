@@ -3,6 +3,7 @@ package com.proiect_cmo.reading_log;
 import static android.content.ContentValues.TAG;
 
 import android.content.ContentValues;
+import android.content.Intent;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
@@ -36,11 +37,16 @@ public class MainActivity extends AppCompatActivity {
     private Button loadButton;
     private TextView textDisplay;
 
+
+
     @Override
+
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_main);
+        Intent intent = new Intent(MainActivity.this, BooksListActivity.class);
+        startActivity(intent);
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
